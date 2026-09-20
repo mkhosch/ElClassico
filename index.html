@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>El Clásico Mini FC — Landscape V2</title>
+<style>
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07130b;font-family:system-ui,-apple-system,sans-serif;touch-action:none}
+#game{position:fixed;inset:0;background:#16833a}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+#hud{position:absolute;top:max(7px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+background:#101010cc;border:1px solid #ffffff33;border-radius:18px;padding:6px 14px;color:white;
+font-weight:900;display:flex;gap:14px;align-items:center;z-index:4;font-size:clamp(12px,2.3vw,20px)}
+#score{font-size:1.25em} #clock{font-variant-numeric:tabular-nums;min-width:50px;text-align:center}
+#joy{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));
+width:120px;height:120px;border-radius:50%;background:#ffffff20;border:3px solid #ffffff66;z-index:5}
+#stick{position:absolute;width:50px;height:50px;left:32px;top:32px;border-radius:50%;background:#ffffffbb;box-shadow:0 3px 10px #0008}
+.btn{position:absolute;z-index:5;border:2px solid #ffffff88;color:#fff;font-weight:1000;border-radius:50%;
+box-shadow:0 4px 12px #0008;touch-action:none}
+#shoot{right:max(18px,env(safe-area-inset-right));bottom:max(55px,env(safe-area-inset-bottom));width:84px;height:84px;background:#d92e35}
+#pass{right:112px;bottom:max(16px,env(safe-area-inset-bottom));width:76px;height:76px;background:#2774d8}
+#sprint{right:116px;bottom:100px;width:66px;height:66px;background:#e49b18;font-size:11px}
+#startScreen{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#06100999;color:#fff}
+#card{background:#101510e8;border:1px solid #ffffff44;border-radius:24px;padding:18px 28px;text-align:center;max-width:520px}
+#card h1{margin:0 0 7px;font-size:clamp(24px,5vw,42px)} #card p{margin:6px 0 15px;opacity:.9}
+#start{border:0;border-radius:18px;padding:14px 24px;font-size:20px;font-weight:1000;background:white;color:#111}
+#banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;color:#fff;
+font-size:clamp(34px,8vw,72px);font-weight:1000;text-shadow:0 4px 12px #000;pointer-events:none;text-align:center}
+#rotate{display:none;position:absolute;inset:0;z-index:20;background:#0b0b0b;color:white;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:800}
+@media (orientation:portrait){#rotate{display:flex}}
+</style></head>
+<body>
+<div id="game">
+<canvas id="c" width="1200" height="650"></canvas>
+<div id="hud"><span>⚪ REAL</span><span id="score">0–0</span><span>BARÇA 🔵🔴</span><span id="clock">3:00</span></div>
+<div id="joy"><div id="stick"></div></div>
+<button class="btn" id="sprint">SPRINT</button><button class="btn" id="pass">PASS</button><button class="btn" id="shoot">SKOTT</button>
+<div id="banner"></div>
+<div id="startScreen"><div id="card"><h1>EL CLÁSICO</h1><div style="opacity:.6;font-size:11px">V3 • iPhone fix</div><p>Real Madrid 2016/17 ⚪ vs 🔵🔴 Barcelona 2010/11<br>Du spelar som Real. Real anfaller →</p><button id="start">STARTA MATCHEN</button></div></div>
+<div id="rotate">📱↻<br><br>Vrid mobilen till liggande läge</div>
+</div>
+<script>
+const cv=document.getElementById("c"),g=cv.getContext("2d"),W=1200,H=650;
+let playing=false,ended=false,startTime=0,last=0,score=[0,0],counting=false;
+const hudScore=document.getElementById("score"),clockEl=document.getElementById("clock"),banner=document.getElementById("banner");
+let input={x:0,y:0,sprint:false};
+
+const RN=["Navas","Carvajal","Ramos","Varane","Marcelo","Casemiro","Kroos","Modrić","Isco","Benzema","Ronaldo"];
+const BN=["Valdés","Alves","Piqué","Puyol","Abidal","Busquets","Xavi","Iniesta","Pedro","Villa","Messi"];
+let R=[],B=[],ball,active;
+
+function formations(team,names){
+ let pts=[[70,325],[210,95],[210,255],[210,395],[210,555],[400,325],[455,180],[455,470],[610,325],[700,210],[700,440]];
+ if(team) pts=pts.map(([x,y])=>[W-x,y]);
+ return pts.map((q,i)=>({x:q[0],y:q[1],hx:q[0],hy:q[1],team,name:names[i],has:false}));
+}
+function reset(kickTeam=0){
+ R=formations(0,RN);B=formations(1,BN);
+ let o=kickTeam?B[10]:R[10];o.has=true;active=R[10];ball={x:o.x,y:o.y,vx:0,vy:0,owner:o};
+}
+reset();
+
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function nearest(arr,obj){return arr.reduce((a,p)=>dist(p,obj)<dist(a,obj)?p:a)}
+function chooseActive(){
+ if(!ball||!R.length)return;
+ if(ball.owner && ball.owner.team===0) active=ball.owner;
+ else active=nearest(R,ball);
+}
+function release(vx,vy){if(!ball.owner)return;ball.owner.has=false;ball.x=ball.owner.x;ball.y=ball.owner.y;ball.owner=null;ball.vx=vx;ball.vy=vy}
+function pass(){
+ if(!playing||!ball.owner||ball.owner.team!==0)return;
+ let o=ball.owner, mates=R.filter(p=>p!==o && p.x>o.x-80);
+ let t=mates.reduce((a,p)=>{
+   let sa=Math.abs(a.y-o.y)+Math.max(0,o.x-a.x)*2- Math.max(0,a.x-o.x)*.35;
+   let sp=Math.abs(p.y-o.y)+Math.max(0,o.x-p.x)*2- Math.max(0,p.x-o.x)*.35; return sp<sa?p:a;
+ },mates[0]||R[9]);
+ let dx=t.x-o.x,dy=t.y-o.y,d=Math.hypot(dx,dy)||1;release(dx/d*10,dy/d*10);
+}
+function shoot(){
+ if(!playing||!ball.owner||ball.owner.team!==0)return;
+ let o=ball.owner, targetY=H/2+(Math.random()-.5)*100,dx=W-o.x,dy=targetY-o.y,d=Math.hypot(dx,dy)||1;release(dx/d*15,dy/d*15);
+}
+function barcaKick(){
+ let o=ball.owner;if(!o||o.team!==1)return;
+ let targetY=H/2+(Math.random()-.5)*120,dx=-o.x,dy=targetY-o.y,d=Math.hypot(dx,dy)||1;release(dx/d*12,dy/d*12);
+}
+function goal(team){
+ score[team]++;hudScore.textContent=score[0]+"–"+score[1];playing=false;
+ banner.textContent=team===0?"GOOOL REAL! ⚪":"MÅL BARÇA";
+ setTimeout(()=>{banner.textContent="";reset(team?0:1);playing=true;last=performance.now()},1100);
+}
+function update(dt){
+ if(!playing||ended)return;
+ let elapsed=(performance.now()-startTime)/1000, left=Math.max(0,180-elapsed);
+ clockEl.textContent=Math.floor(left/60)+":"+String(Math.floor(left%60)).padStart(2,"0");
+ if(left<=0){playing=false;ended=true;banner.textContent=score[0]>score[1]?"REAL MADRID VINNER! 🏆":score[1]>score[0]?"BARCELONA VINNER":"OAVGJORT!";return}
+ chooseActive();
+ let s=(input.sprint?4.7:3.25)*dt;
+ active.x=Math.max(28,Math.min(W-28,active.x+input.x*s));active.y=Math.max(28,Math.min(H-28,active.y+input.y*s));
+ for(const p of R) if(p!==active&&!p.has){p.x+=(p.hx-p.x)*.012*dt;p.y+=(p.hy-p.y)*.012*dt}
+ let hunter=nearest(B,ball);
+ for(const p of B){
+   let tx=p===hunter?ball.x:p.hx, ty=p===hunter?ball.y:p.hy;
+   p.x+=(tx-p.x)*.018*dt;p.y+=(ty-p.y)*.018*dt;
+   if(ball.owner&&ball.owner.team===0&&dist(p,ball.owner)<24&&Math.random()<.018*dt){ball.owner.has=false;p.has=true;ball.owner=p}
+ }
+ if(ball.owner){
+   ball.x=ball.owner.x+(ball.owner.team?-15:15);ball.y=ball.owner.y;
+   if(ball.owner.team===1){
+     ball.owner.x-=1.45*dt;
+     if(ball.owner.x<250 && Math.random()<.035*dt) barcaKick();
+   }
+ } else {
+   ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.vx*=Math.pow(.988,dt);ball.vy*=Math.pow(.988,dt);
+   for(const p of [...R,...B]) if(dist(p,ball)<22){ball.owner=p;p.has=true;ball.vx=ball.vy=0;break}
+   if(ball.y<18||ball.y>H-18) ball.vy*=-.65;
+ }
+ // Goals: left goal is Barça scoring, right goal is Real scoring
+ if(ball.x>W && ball.y>H/2-82&&ball.y<H/2+82) goal(0);
+ else if(ball.x<0 && ball.y>H/2-82&&ball.y<H/2+82) goal(1);
+ else if(ball.x<-35||ball.x>W+35){reset(ball.x<0?0:1)}
+}
+function draw(){
+ g.clearRect(0,0,W,H);
+ for(let i=0;i<10;i++){g.fillStyle=i%2?"#198844":"#16803e";g.fillRect(i*W/10,0,W/10,H)}
+ g.strokeStyle="#ffffffcc";g.lineWidth=4;g.strokeRect(18,18,W-36,H-36);
+ g.beginPath();g.moveTo(W/2,18);g.lineTo(W/2,H-18);g.stroke();g.beginPath();g.arc(W/2,H/2,82,0,Math.PI*2);g.stroke();g.beginPath();g.arc(W/2,H/2,4,0,7);g.fillStyle="white";g.fill();
+ g.strokeRect(18,H/2-145,175,290);g.strokeRect(W-193,H/2-145,175,290);
+ g.strokeRect(-4,H/2-82,22,164);g.strokeRect(W-18,H/2-82,22,164);
+ function players(arr,col1,col2){
+   for(const p of arr){g.beginPath();g.fillStyle=col1;g.arc(p.x,p.y,18,0,7);g.fill();g.lineWidth=4;g.strokeStyle=col2;g.stroke();
+     g.fillStyle="white";g.font="bold 15px system-ui";g.textAlign="center";g.fillText(p.name,p.x,p.y+37)}
+ }
+ players(R,"#f4f4f4","#b8b8b8");players(B,"#1f56c8","#d62d35");
+ chooseActive();g.beginPath();g.strokeStyle="#ffe32c";g.lineWidth=5;g.arc(active.x,active.y,26,0,7);g.stroke();
+ g.beginPath();g.fillStyle="#fff";g.arc(ball.x,ball.y,9,0,7);g.fill();g.strokeStyle="#111";g.lineWidth=2;g.stroke();
+}
+function frame(t){let dt=Math.min(2,(t-last)/16.67||1);last=t;update(dt);draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+
+const startBtn=document.getElementById("start");
+let starting=false;
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function startMatch(e){
+ if(e){e.preventDefault();e.stopPropagation()}
+ if(starting||playing)return;
+ starting=true;
+ document.getElementById("startScreen").style.display="none";
+ score=[0,0];hudScore.textContent="0–0";clockEl.textContent="3:00";reset(0);
+ banner.textContent="3";await sleep(500);
+ banner.textContent="2";await sleep(500);
+ banner.textContent="1";await sleep(500);
+ banner.textContent="KÖR!";
+ startTime=performance.now();last=startTime;playing=true;ended=false;
+ await sleep(450);banner.textContent="";starting=false;
+}
+startBtn.addEventListener("pointerup",startMatch,{passive:false});
+startBtn.addEventListener("touchend",startMatch,{passive:false});
+startBtn.addEventListener("click",startMatch);
+document.getElementById("pass").addEventListener("pointerdown",e=>{e.preventDefault();pass()});
+document.getElementById("shoot").addEventListener("pointerdown",e=>{e.preventDefault();shoot()});
+const spr=document.getElementById("sprint");spr.addEventListener("pointerdown",e=>{e.preventDefault();input.sprint=true});["pointerup","pointercancel","pointerleave"].forEach(v=>spr.addEventListener(v,()=>input.sprint=false));
+const joy=document.getElementById("joy"),stick=document.getElementById("stick");
+function jm(e){e.preventDefault();let r=joy.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy)||1,m=Math.min(35,d);input.x=dx/d;input.y=dy/d;stick.style.transform=`translate(${input.x*m}px,${input.y*m}px)`}
+joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);jm(e)});joy.addEventListener("pointermove",e=>{if(e.buttons||e.pointerType==="touch")jm(e)});
+function je(){input.x=input.y=0;stick.style.transform=""}joy.addEventListener("pointerup",je);joy.addEventListener("pointercancel",je);
+</script>
+</body></html>
