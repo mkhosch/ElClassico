@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>El Clásico Mini FC — V5</title>
+<style>
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07130b;font-family:system-ui,-apple-system,sans-serif;touch-action:none}
+#game{position:fixed;inset:0;background:#16833a}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+#cornerScore{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));z-index:7;background:#0b0b0be8;color:#fff;border-radius:10px;padding:7px 11px;font-weight:1000;font-size:18px;border:1px solid #ffffff44}#hud{position:absolute;top:max(6px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#101010d9;border:1px solid #ffffff33;border-radius:18px;padding:5px 13px;color:white;font-weight:900;display:flex;gap:12px;align-items:center;z-index:4;font-size:clamp(11px,2vw,18px)}
+#score{font-size:1.3em} #clock{font-variant-numeric:tabular-nums;min-width:48px;text-align:center}
+#joy{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(54px,calc(env(safe-area-inset-bottom) + 42px));width:98px;height:98px;border-radius:50%;background:#ffffff20;border:3px solid #ffffff66;z-index:5}
+#stick{position:absolute;width:40px;height:40px;left:26px;top:26px;border-radius:50%;background:#ffffffbb;box-shadow:0 3px 10px #0008}
+.btn{position:absolute;z-index:5;border:2px solid #ffffff99;color:#fff;font-weight:1000;border-radius:50%;box-shadow:0 4px 12px #0008;touch-action:none}
+#shoot{right:max(17px,env(safe-area-inset-right));bottom:72px;width:66px;height:66px;background:#d92e35}
+#pass{right:91px;bottom:38px;width:60px;height:60px;background:#2774d8}
+#sprint{right:94px;bottom:105px;width:54px;height:54px;background:#e49b18;font-size:10px}
+#tackle{right:160px;bottom:48px;width:56px;height:56px;background:#6f42c1;font-size:10px}
+#switch{right:158px;bottom:112px;width:54px;height:54px;background:#168a8a;font-size:9px}
+#through{right:222px;bottom:76px;width:58px;height:58px;background:#cf6b1d;font-size:9px}
+#playerbar{position:absolute;left:50%;bottom:max(5px,env(safe-area-inset-bottom));transform:translateX(-50%);height:38px;width:min(52vw,590px);background:#101010df;border:1px solid #ffffff44;border-radius:10px;color:white;z-index:4;display:flex;align-items:center;overflow:hidden;font-weight:850}
+#club,#short{padding:0 11px;height:100%;display:flex;align-items:center;border-right:1px solid #ffffff33}
+#club{font-weight:1000} #short{font-size:12px;opacity:.9}
+#pname{padding:0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+#powerWrap{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:164px;width:84px;height:12px;border:2px solid #fff8;border-radius:8px;background:#0008;z-index:6;overflow:hidden;opacity:0;transition:opacity .1s}
+#power{height:100%;width:0%;background:linear-gradient(90deg,#e6e64a,#ff9b22,#e93434)}
+#startScreen{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#061009aa;color:#fff}
+#card{background:#101510ee;border:1px solid #ffffff44;border-radius:24px;padding:16px 28px;text-align:center;max-width:520px}
+#card h1{margin:0 0 4px;font-size:clamp(24px,5vw,40px)} #card p{margin:6px 0 14px;opacity:.9}
+#start{border:0;border-radius:18px;padding:13px 23px;font-size:19px;font-weight:1000;background:white;color:#111}
+#banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;color:#fff;font-size:clamp(32px,8vw,68px);font-weight:1000;text-shadow:0 4px 12px #000;pointer-events:none;text-align:center}
+#rotate{display:none;position:absolute;inset:0;z-index:20;background:#0b0b0b;color:white;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:800}
+@media(orientation:portrait){#rotate{display:flex}}
+
+/* V6 team builder */
+#builder{position:absolute;inset:0;z-index:40;background:linear-gradient(135deg,#07152c,#111827 55%,#28110b);color:white;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif}
+#builder.hidden{display:none}
+#clubPick{margin:auto;text-align:center;padding:20px}
+#clubPick h1{font-size:clamp(30px,6vw,64px);margin:0 0 8px}
+#clubPick p{opacity:.8;margin:0 0 24px}
+.clubBtns{display:flex;gap:18px;justify-content:center}
+.clubChoice{min-width:180px;padding:20px;border:2px solid #ffffff55;border-radius:18px;color:white;font-weight:900;font-size:20px;background:#ffffff16}
+.clubChoice:active{transform:scale(.97)}
+#squadBuilder{display:none;position:absolute;inset:0;padding:8px 10px 10px;box-sizing:border-box}
+.builderTop{height:44px;display:flex;align-items:center;gap:10px}
+.builderTop b{font-size:18px}
+.builderTop select,.builderTop button{border:0;border-radius:9px;padding:8px 10px;font-weight:800}
+#builderBody{display:grid;grid-template-columns:38% 62%;gap:8px;height:calc(100% - 48px)}
+#legendPool{overflow:auto;background:#0005;border-radius:14px;padding:7px}
+.posHead{font-size:10px;font-weight:1000;opacity:.65;margin:6px 4px 3px;letter-spacing:.8px}
+.legendCard{display:flex;align-items:center;justify-content:space-between;gap:5px;background:#fff;color:#111;border-radius:9px;padding:7px 8px;margin:4px 0;font-size:11px;font-weight:850;touch-action:none}
+.legendCard small{opacity:.55;font-size:9px}
+.legendCard.used{opacity:.28}
+#pitchBuilder{position:relative;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(90deg,#2e874a 0,#2e874a 12.5%,#287c43 12.5%,#287c43 25%);border:2px solid #ffffff88}
+#pitchBuilder:before{content:"";position:absolute;inset:5%;border:1px solid #ffffffaa;border-radius:2px}
+#pitchBuilder:after{content:"";position:absolute;left:50%;top:5%;bottom:5%;border-left:1px solid #ffffffaa}
+.slot{position:absolute;width:74px;height:43px;transform:translate(-50%,-50%);border:1.5px dashed #ffffffbb;border-radius:9px;background:#07111d99;color:white;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;font-weight:900;padding:2px;box-sizing:border-box;z-index:2;touch-action:none}
+.slot.filled{background:#f5f5f5;color:#111;border-style:solid}
+.slot span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68px}
+#startXI{margin-left:auto;background:#efb810;color:#111}
+#backClub{background:#ffffff20;color:white}
+@media(max-height:430px){.legendCard{padding:5px 7px;margin:3px 0}.builderTop{height:38px}#builderBody{height:calc(100% - 42px)}.slot{width:68px;height:38px}}
+</style></head>
+<body>
+<div id="builder">
+ <div id="clubPick">
+  <h1>BYGG DITT EL CLÁSICO</h1>
+  <p>Välj klubb – sedan väljer ni en startelva bland 30 legendarer.</p>
+  <div class="clubBtns">
+   <button class="clubChoice" data-club="RMA">REAL MADRID</button>
+   <button class="clubChoice" data-club="BAR">BARCELONA</button>
+  </div>
+ </div>
+ <div id="squadBuilder">
+  <div class="builderTop">
+   <button id="backClub">← KLUBB</button><b id="builderClub">REAL MADRID</b>
+   <label>Formation <select id="formation"><option>4-3-3</option><option>4-4-2</option><option>3-5-2</option></select></label>
+   <span id="xiCount">0/11</span><button id="startXI" disabled>SPELA</button>
+  </div>
+  <div id="builderBody"><div id="legendPool"></div><div id="pitchBuilder"></div></div>
+ </div>
+</div>
+<div id="game">
+<canvas id="c" width="1200" height="650"></canvas>
+<div id="cornerScore">RMA&nbsp; <b id="cornerNum">0–0</b>&nbsp; BAR</div><div id="hud"><span>⚪ RMA</span><span id="score">0–0</span><span>BAR 🔵🔴</span><span id="clock">3:00</span></div>
+<div id="joy"><div id="stick"></div></div>
+<button class="btn" id="switch">SWITCH</button><button class="btn" id="through">DJUP</button><button class="btn" id="sprint">SPRINT</button><button class="btn" id="tackle">TACKLA</button><button class="btn" id="pass">PASS</button><button class="btn" id="shoot">SKOTT</button>
+<div id="powerWrap"><div id="power"></div></div>
+<div id="playerbar"><div id="club">RMA</div><div id="short">CR7</div><div id="pname">CRISTIANO RONALDO</div></div>
+<div id="banner"></div>
+<div id="startScreen"><div id="card"><h1>EL CLÁSICO</h1><div style="opacity:.6;font-size:11px">V6 • Legends Builder</div><p>Real Madrid 2016/17 ⚪ vs 🔵🔴 Barcelona 2010/11<br>Du spelar som Real • Real anfaller →</p><button id="start">STARTA MATCHEN</button></div></div>
+<div id="rotate">📱↻<br><br>Vrid mobilen till liggande läge</div>
+</div>
+<script>
+const cv=document.getElementById("c"),g=cv.getContext("2d"),W=1200,H=650;
+const hudScore=document.getElementById("score"),cornerNum=document.getElementById("cornerNum"),clockEl=document.getElementById("clock"),banner=document.getElementById("banner");
+const powerWrap=document.getElementById("powerWrap"),power=document.getElementById("power");
+const shortEl=document.getElementById("short"),pnameEl=document.getElementById("pname");
+let playing=false,ended=false,starting=false,startTime=0,last=0,score=[0,0],input={x:0,y:0,sprint:false};
+let shotCharging=false,chargeStart=0,passCharging=false,passChargeStart=0,tackleCooldown=false;
+
+const RD=[
+["Navas",1,"KN1"],["Carvajal",2,"DC2"],["Ramos",4,"SR4"],["Varane",5,"RV5"],["Marcelo",12,"M12"],
+["Casemiro",14,"C14"],["Kroos",8,"TK8"],["Modrić",10,"LM10"],["Isco",22,"I22"],["Benzema",9,"KB9"],["Ronaldo",7,"CR7"]];
+const BD=[
+["Valdés",1],["Alves",2],["Piqué",3],["Puyol",5],["Abidal",22],["Busquets",16],["Xavi",6],["Iniesta",8],["Pedro",17],["Villa",7],["Messi",10]];
+let R=[],B=[],ball,active;
+
+function formations(team,data){
+ let pts=[[70,325],[210,95],[210,255],[210,395],[210,555],[400,325],[455,180],[455,470],[610,325],[700,210],[700,440]];
+ if(team)pts=pts.map(([x,y])=>[W-x,y]);
+ return pts.map((q,i)=>({x:q[0],y:q[1],hx:q[0],hy:q[1],team,name:data[i][0],num:data[i][1],short:data[i][2]||data[i][0].slice(0,2).toUpperCase()+data[i][1],has:false}));
+}
+function reset(kickTeam=0){
+ R=formations(0,RD);B=formations(1,BD);let o=kickTeam?B[10]:R[10];o.has=true;active=R[10];ball={x:o.x,y:o.y,vx:0,vy:0,owner:o};updatePlayerBar();
+}
+reset();
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function nearest(arr,obj){return arr.reduce((a,p)=>dist(p,obj)<dist(a,obj)?p:a)}
+function chooseActive(){if(!ball||!R.length)return;if(ball.owner&&ball.owner.team===0)active=ball.owner;else if(!active)active=nearest(R,ball)}
+function updatePlayerBar(){if(!active)return;shortEl.textContent=active.short;pnameEl.textContent=active.name==="Ronaldo"?"CRISTIANO RONALDO":active.name.toUpperCase()}
+function release(vx,vy){
+ const o=ball.owner;if(!o)return;
+ o.has=false;ball.x=o.x+(o.team?-22:22);ball.y=o.y;
+ ball.owner=null;ball.vx=vx;ball.vy=vy;
+}
+
+function selectPassTarget(o,through=false){
+ let mag=Math.hypot(input.x,input.y), candidates=R.filter(p=>p!==o);
+ if(mag>.22){
+   let ax=input.x/mag,ay=input.y/mag;
+   return candidates.reduce((best,p)=>{
+     let dx=p.x-o.x,dy=p.y-o.y,d=Math.hypot(dx,dy)||1;
+     let score=((dx/d)*ax+(dy/d)*ay)*550-d*.12+(through?Math.max(0,dx)*.5:0);
+     let bx=best.x-o.x,by=best.y-o.y,bd=Math.hypot(bx,by)||1;
+     let bs=((bx/bd)*ax+(by/bd)*ay)*550-bd*.12+(through?Math.max(0,bx)*.5:0);
+     return score>bs?p:best;
+   },candidates[0]);
+ }
+ return candidates.reduce((best,p)=>{
+   let ps=(p.x-o.x)*(through?2.2:1.4)-Math.abs(p.y-o.y)*.28;
+   let bs=(best.x-o.x)*(through?2.2:1.4)-Math.abs(best.y-o.y)*.28;
+   return ps>bs?p:best;
+ },candidates[0]);
+}
+function beginPass(e){
+ if(e){e.preventDefault();e.stopPropagation()}
+ if(!playing||passCharging||!ball.owner||ball.owner.team!==0)return;
+ passCharging=true;passChargeStart=performance.now();powerWrap.style.opacity=1;power.style.width="6%";
+ try{document.getElementById("pass").setPointerCapture(e.pointerId)}catch(_){}
+}
+function endPass(e){
+ if(e){e.preventDefault();e.stopPropagation()}
+ if(!passCharging)return;passCharging=false;
+ let held=Math.min(1,Math.max(.12,(performance.now()-passChargeStart)/900));
+ power.style.width="0%";powerWrap.style.opacity=0;
+ if(!ball.owner||ball.owner.team!==0)return;
+ let o=ball.owner,t=selectPassTarget(o,false),dx=t.x-o.x,dy=t.y-o.y,d=Math.hypot(dx,dy)||1;
+ release(dx/d*(10+8*held),dy/d*(10+8*held));
+}
+function throughPass(e){
+ if(e){e.preventDefault();e.stopPropagation()}
+ if(!playing||!ball.owner||ball.owner.team!==0)return;
+ let o=ball.owner,t=selectPassTarget(o,true);
+ // Lead receiver into space ahead of him.
+ let tx=Math.min(W-35,t.x+125),ty=t.y,dx=tx-o.x,dy=ty-o.y,d=Math.hypot(dx,dy)||1;
+ release(dx/d*16.5,dy/d*16.5);
+}
+function beginShot(e){
+ if(e){e.preventDefault();e.stopPropagation()}
+ if(!playing||shotCharging||!ball.owner||ball.owner.team!==0)return;
+ shotCharging=true;chargeStart=performance.now();powerWrap.style.opacity=1;power.style.width="8%";
+ try{document.getElementById("shoot").setPointerCapture(e.pointerId)}catch(_){}
+}
+function endShot(e){
+ if(e){e.preventDefault();e.stopPropagation()}
+ if(!shotCharging)return;
+ shotCharging=false;
+ let held=Math.min(1,Math.max(.18,(performance.now()-chargeStart)/1000));
+ power.style.width="0%";powerWrap.style.opacity=0;
+ if(!ball.owner||ball.owner.team!==0)return;
+ let o=ball.owner;
+ let mag=Math.hypot(input.x,input.y), ax=mag>.25?input.x/mag:1, ay=mag>.25?input.y/mag:0;
+ // Never allow a charged shot to accidentally go backwards.
+ if(ax<.2){ax=.75; let norm=Math.hypot(ax,ay)||1;ax/=norm;ay/=norm}
+ let speed=15+9*held;
+ release(ax*speed,ay*speed);
+}
+function tackle(){
+ if(!playing||tackleCooldown)return;tackleCooldown=true;setTimeout(()=>tackleCooldown=false,430);
+ let target=ball.owner&&ball.owner.team===1?ball.owner:ball,dx=target.x-active.x,dy=target.y-active.y,d=Math.hypot(dx,dy)||1;
+ active.x+=dx/d*26;active.y+=dy/d*26;
+ if(dist(active,target)<44&&ball.owner&&ball.owner.team===1){ball.owner.has=false;active.has=true;ball.owner=active;ball.vx=ball.vy=0;banner.textContent="BOLLEN VUNNEN!";setTimeout(()=>{if(playing)banner.textContent=""},320)}
+ else if(dist(active,ball)<34&&!ball.owner){active.has=true;ball.owner=active;ball.vx=ball.vy=0}
+}
+function switchPlayer(){
+ if(!playing)return;
+ if(ball.owner&&ball.owner.team===0){active=ball.owner;updatePlayerBar();return}
+ let ranked=[...R].sort((a,b)=>dist(a,ball)-dist(b,ball));
+ let i=ranked.indexOf(active);active=ranked[(i+1)%Math.min(3,ranked.length)];updatePlayerBar();
+}
+function barcaKick(){
+ let o=ball.owner;if(!o||o.team!==1)return;let targetY=H/2+(Math.random()-.5)*120,dx=-o.x,dy=targetY-o.y,d=Math.hypot(dx,dy)||1;release(dx/d*12,dy/d*12)
+}
+function goal(team){
+ score[team]++;hudScore.textContent=score[0]+"–"+score[1];cornerNum.textContent=score[0]+"–"+score[1];playing=false;banner.textContent=team===0?"GOOOL REAL! ⚪":"MÅL BARÇA";
+ setTimeout(()=>{banner.textContent="";reset(team?0:1);playing=true;last=performance.now()},1000)
+}
+function update(dt){
+ if(!playing||ended)return;
+ let elapsed=(performance.now()-startTime)/1000,left=Math.max(0,180-elapsed);clockEl.textContent=Math.floor(left/60)+":"+String(Math.floor(left%60)).padStart(2,"0");
+ if(left<=0){playing=false;ended=true;banner.textContent=score[0]>score[1]?"REAL MADRID VINNER! 🏆":score[1]>score[0]?"BARCELONA VINNER":"OAVGJORT!";return}
+ chooseActive();updatePlayerBar();
+ // Slower overall; extra ball-carrier penalty.
+ let hasBall=ball.owner===active,base=input.sprint?3.95:2.75,s=base*(hasBall?.82:1)*dt;
+ active.x=Math.max(28,Math.min(W-28,active.x+input.x*s));active.y=Math.max(28,Math.min(H-28,active.y+input.y*s));
+ // Dynamic team movement: support, runs, marking, defensive recovery.
+ let realAttacking=ball.owner&&ball.owner.team===0, barAttacking=ball.owner&&ball.owner.team===1;
+ for(const p of R)if(p!==active&&!p.has){
+   let tx=p.hx,ty=p.hy;
+   if(realAttacking){
+     let lane=(p.hy-H/2)*.12;
+     tx=Math.min(W-75,p.hx+(p.hx>560?185:p.hx>350?115:45));
+     ty=Math.max(55,Math.min(H-55,p.hy+lane+(ball.y-H/2)*.12));
+   }else{
+     tx=Math.max(75,p.hx-35);
+     if(ball.x<560){tx=Math.max(70,tx-75);ty=p.hy+(ball.y-p.hy)*.18}
+   }
+   p.x+=(tx-p.x)*.022*dt;p.y+=(ty-p.y)*.022*dt;
+ }
+ let hunter=nearest(B,ball);
+ for(const p of B)if(!p.has){
+   let tx=p.hx,ty=p.hy;
+   if(barAttacking){
+     tx=Math.max(75,p.hx-(p.hx<640?175:p.hx<850?105:40));
+     ty=Math.max(55,Math.min(H-55,p.hy+(ball.y-H/2)*.12));
+   }else{
+     // nearest presses, others shift toward ball and mark zones
+     if(p===hunter){tx=ball.x;ty=ball.y}
+     else {tx=Math.min(W-70,p.hx+55);ty=p.hy+(ball.y-p.hy)*.22}
+   }
+   p.x+=(tx-p.x)*.020*dt;p.y+=(ty-p.y)*.020*dt;
+   if(ball.owner&&ball.owner.team===0&&dist(p,ball.owner)<23&&Math.random()<.013*dt){ball.owner.has=false;p.has=true;ball.owner=p}
+ }
+ if(ball.owner){
+   ball.x=ball.owner.x+(ball.owner.team?-16:16);ball.y=ball.owner.y;
+   if(ball.owner.team===1){ball.owner.x-=1.15*dt;if(ball.owner.x<255&&Math.random()<.03*dt)barcaKick()}
+ }else{
+   ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.vx*=Math.pow(.989,dt);ball.vy*=Math.pow(.989,dt);
+   for(const p of [...R,...B])if(dist(p,ball)<21){ball.owner=p;p.has=true;ball.vx=ball.vy=0;if(p.team===0)active=p;break}
+   if(ball.y<18||ball.y>H-18)ball.vy*=-.65;
+ }
+ if(shotCharging){let q=Math.min(1,(performance.now()-chargeStart)/1200);power.style.width=(q*100)+"%"}
+ if(passCharging){let q=Math.min(1,(performance.now()-passChargeStart)/900);power.style.width=(q*100)+"%"}
+ if(ball.x>W&&ball.y>H/2-86&&ball.y<H/2+86)goal(0);
+ else if(ball.x<0&&ball.y>H/2-86&&ball.y<H/2+86)goal(1);
+ else if(ball.x<-35||ball.x>W+35)reset(ball.x<0?0:1);
+}
+function drawGoal(x0,dir){
+ g.save();g.strokeStyle="#fff";g.lineWidth=5;
+ let y1=H/2-86,y2=H/2+86,depth=42*dir;
+ g.beginPath();g.moveTo(x0,y1);g.lineTo(x0+depth,y1+14);g.lineTo(x0+depth,y2-14);g.lineTo(x0,y2);g.stroke();
+ g.lineWidth=1.5;g.strokeStyle="#ffffff99";
+ for(let y=y1+18;y<y2;y+=18){g.beginPath();g.moveTo(x0,y);g.lineTo(x0+depth,y+(dir>0?7:-7));g.stroke()}
+ for(let i=1;i<4;i++){let xx=x0+depth*i/4;g.beginPath();g.moveTo(xx,y1+14*i/4);g.lineTo(xx,y2-14*i/4);g.stroke()}
+ g.restore();
+}
+function drawPlayer(p){
+ // Tiny footballer: legs, torso, head, shirt number.
+ g.save();g.translate(p.x,p.y);
+ g.strokeStyle=p.team?"#1c2440":"#333";g.lineWidth=5;g.lineCap="round";
+ g.beginPath();g.moveTo(-5,11);g.lineTo(-8,21);g.moveTo(5,11);g.lineTo(8,21);g.stroke();
+ g.fillStyle=p.team?"#2456c9":"#f4f4f4";g.strokeStyle=p.team?"#d52d38":"#bdbdbd";g.lineWidth=4;
+ g.beginPath();g.roundRect(-15,-15,30,31,8);g.fill();g.stroke();
+ g.fillStyle="#d7a77c";g.beginPath();g.arc(0,-23,8,0,7);g.fill();
+ g.fillStyle=p.team?"white":"#111";g.font="900 14px system-ui";g.textAlign="center";g.textBaseline="middle";g.fillText(p.num,0,1);
+ g.restore();
+}
+function draw(){
+ g.clearRect(0,0,W,H);
+ for(let i=0;i<10;i++){g.fillStyle=i%2?"#198844":"#16803e";g.fillRect(i*W/10,0,W/10,H)}
+ g.strokeStyle="#ffffffd5";g.lineWidth=4;g.strokeRect(18,18,W-36,H-36);g.beginPath();g.moveTo(W/2,18);g.lineTo(W/2,H-18);g.stroke();
+ g.beginPath();g.arc(W/2,H/2,82,0,7);g.stroke();g.beginPath();g.arc(W/2,H/2,4,0,7);g.fillStyle="white";g.fill();
+ g.strokeRect(18,H/2-145,175,290);g.strokeRect(W-193,H/2-145,175,290);
+ drawGoal(18,1);drawGoal(W-18,-1);
+ for(const p of R)drawPlayer(p);for(const p of B)drawPlayer(p);
+ chooseActive();g.beginPath();g.strokeStyle="#ffe32c";g.lineWidth=5;g.arc(active.x,active.y,29,0,7);g.stroke();
+ g.beginPath();g.fillStyle="#fff";g.arc(ball.x,ball.y,9,0,7);g.fill();g.strokeStyle="#111";g.lineWidth=2;g.stroke();
+}
+function frame(t){let dt=Math.min(2,(t-last)/16.67||1);last=t;update(dt);draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function startMatch(e){
+ if(e){e.preventDefault();e.stopPropagation()}if(starting||playing)return;starting=true;document.getElementById("startScreen").style.display="none";
+ score=[0,0];hudScore.textContent="0–0";cornerNum.textContent="0–0";clockEl.textContent="3:00";ended=false;reset(0);
+ for(const z of ["3","2","1","KÖR!"]){banner.textContent=z;await sleep(z==="KÖR!"?350:450)}
+ banner.textContent="";startTime=performance.now();last=startTime;playing=true;starting=false
+}
+const sb=document.getElementById("start");sb.addEventListener("pointerup",startMatch,{passive:false});sb.addEventListener("touchend",startMatch,{passive:false});sb.addEventListener("click",startMatch);
+
+function press(el,fn){el.addEventListener("pointerdown",e=>{e.preventDefault();fn(e)},{passive:false});el.addEventListener("touchstart",e=>{e.preventDefault();fn(e)},{passive:false})}
+function bindTap(id,fn){
+ const el=document.getElementById(id);
+ el.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();fn(e)},{passive:false});
+}
+bindTap("tackle",tackle);bindTap("switch",switchPlayer);bindTap("through",throughPass);
+const ps=document.getElementById("pass");
+ps.addEventListener("pointerdown",beginPass,{passive:false});
+ps.addEventListener("pointerup",endPass,{passive:false});
+ps.addEventListener("pointercancel",endPass,{passive:false});
+const sh=document.getElementById("shoot");sh.addEventListener("pointerdown",beginShot,{passive:false});sh.addEventListener("pointerup",endShot,{passive:false});sh.addEventListener("pointercancel",endShot,{passive:false});
+
+const spr=document.getElementById("sprint");spr.addEventListener("pointerdown",e=>{e.preventDefault();input.sprint=true});["pointerup","pointercancel","pointerleave"].forEach(v=>spr.addEventListener(v,()=>input.sprint=false));
+const joy=document.getElementById("joy"),stick=document.getElementById("stick");
+function jm(e){e.preventDefault();let r=joy.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy)||1,m=Math.min(34,d);input.x=dx/d;input.y=dy/d;stick.style.transform=`translate(${input.x*m}px,${input.y*m}px)`}
+joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);jm(e)});joy.addEventListener("pointermove",e=>{if(e.buttons||e.pointerType==="touch")jm(e)});
+function je(){input.x=input.y=0;stick.style.transform=""}joy.addEventListener("pointerup",je);joy.addEventListener("pointercancel",je);
+
+// ---------- V6: club + legends + formation builder ----------
+const LEGENDS={
+RMA:[
+["GK","Iker Casillas","CAS"],["GK","Keylor Navas","NAV"],["GK","Thibaut Courtois","TCO"],
+["CB","Sergio Ramos","RAM"],["CB","Fernando Hierro","HIE"],["CB","Pepe","PEP"],["CB","Raphaël Varane","VAR"],
+["LB","Roberto Carlos","RCA"],["LB","Marcelo","MAR"],["RB","Dani Carvajal","CAR"],["RB","Míchel Salgado","SAL"],
+["CM","Luka Modrić","MOD"],["CM","Toni Kroos","KRO"],["CM","Casemiro","CASM"],["CM","Zinedine Zidane","ZIZ"],["CM","Fernando Redondo","RED"],["CM","Guti","GUT"],
+["RW","Luís Figo","FIG"],["RW","Gareth Bale","BAL"],["LW","Cristiano Ronaldo","CR7"],["LW","Vinícius Júnior","VJ"],
+["AM","Raúl","RAU"],["AM","Kaká","KAK"],["ST","Karim Benzema","BEN"],["ST","Ronaldo Nazário","R9"],["ST","Alfredo Di Stéfano","ADS"],["ST","Ferenc Puskás","PUS"],
+["FW","Hugo Sánchez","HUG"],["FW","Emilio Butragueño","BUT"],["FW","Santillana","SAN"]],
+BAR:[
+["GK","Víctor Valdés","VAL"],["GK","Andoni Zubizarreta","ZUB"],["GK","Marc-André ter Stegen","MTS"],
+["CB","Carles Puyol","PUY"],["CB","Gerard Piqué","PIQ"],["CB","Rafael Márquez","RMQ"],["CB","Ronald Koeman","KOE"],
+["LB","Jordi Alba","ALB"],["LB","Éric Abidal","ABI"],["RB","Dani Alves","DAV"],["RB","Albert Ferrer","FER"],
+["CM","Xavi","XAV"],["CM","Andrés Iniesta","INI"],["CM","Sergio Busquets","BUS"],["CM","Pep Guardiola","GUA"],["CM","Luis Enrique","LEN"],["CM","Ivan Rakitić","RAK"],
+["RW","Lionel Messi","MES"],["RW","Lamine Yamal","YAM"],["LW","Ronaldinho","RON"],["LW","Neymar","NEY"],
+["AM","Rivaldo","RIV"],["AM","Michael Laudrup","LAU"],["ST","Luis Suárez","LSU"],["ST","Samuel Eto'o","ETO"],["ST","Johan Cruyff","CRU"],["ST","Romário","ROM"],
+["FW","Hristo Stoichkov","STO"],["FW","César Rodríguez","CES"],["FW","David Villa","VIL"]]
+};
+const FORMS={
+"4-3-3":[["GK",8,50],["LB",28,15],["CB",28,38],["CB",28,62],["RB",28,85],["CM",52,28],["CM",47,50],["CM",52,72],["LW",76,20],["ST",82,50],["RW",76,80]],
+"4-4-2":[["GK",8,50],["LB",28,15],["CB",28,38],["CB",28,62],["RB",28,85],["LM",53,15],["CM",49,39],["CM",49,61],["RM",53,85],["ST",80,38],["ST",80,62]],
+"3-5-2":[["GK",8,50],["CB",29,27],["CB",25,50],["CB",29,73],["LM",52,12],["CM",49,32],["CM",45,50],["CM",49,68],["RM",52,88],["ST",80,38],["ST",80,62]]
+};
+let chosenClub=null,selectedXI={},dragPlayer=null;
+const builder=document.getElementById("builder"),clubPick=document.getElementById("clubPick"),squadBuilder=document.getElementById("squadBuilder"),
+legendPool=document.getElementById("legendPool"),pitchBuilder=document.getElementById("pitchBuilder"),formationSel=document.getElementById("formation"),
+xiCount=document.getElementById("xiCount"),startXI=document.getElementById("startXI");
+
+function showPool(){
+ legendPool.innerHTML="";
+ let last="";
+ LEGENDS[chosenClub].forEach((pl,i)=>{
+   if(pl[0]!==last){let h=document.createElement("div");h.className="posHead";h.textContent=pl[0];legendPool.appendChild(h);last=pl[0]}
+   let c=document.createElement("div");c.className="legendCard";c.dataset.i=i;c.draggable=true;
+   c.innerHTML=`<span>${pl[1]}</span><small>${pl[0]}</small>`;
+   if(Object.values(selectedXI).includes(i))c.classList.add("used");
+   c.addEventListener("dragstart",()=>dragPlayer=i);
+   c.addEventListener("pointerdown",()=>dragPlayer=i);
+   legendPool.appendChild(c);
+ });
+}
+function buildPitch(){
+ selectedXI={};pitchBuilder.innerHTML="";
+ FORMS[formationSel.value].forEach((a,n)=>{
+   let sl=document.createElement("div");sl.className="slot";sl.dataset.slot=n;sl.style.left=a[1]+"%";sl.style.top=a[2]+"%";
+   sl.innerHTML=`<span>${a[0]}</span>`;
+   sl.addEventListener("dragover",e=>e.preventDefault());
+   sl.addEventListener("drop",e=>{e.preventDefault();place(n,dragPlayer)});
+   sl.addEventListener("pointerup",()=>{if(dragPlayer!==null)place(n,dragPlayer)});
+   pitchBuilder.appendChild(sl);
+ });
+ showPool();updateXI();
+}
+function place(slot,i){
+ if(i===null||i===undefined)return;
+ for(const k in selectedXI)if(selectedXI[k]===i)delete selectedXI[k];
+ selectedXI[slot]=i;dragPlayer=null;
+ [...pitchBuilder.querySelectorAll(".slot")].forEach((sl,n)=>{
+   let pi=selectedXI[n];
+   if(pi!==undefined){sl.classList.add("filled");sl.innerHTML=`<span>${LEGENDS[chosenClub][pi][2]}<br>${LEGENDS[chosenClub][pi][1]}</span>`}
+   else{sl.classList.remove("filled");sl.innerHTML=`<span>${FORMS[formationSel.value][n][0]}</span>`}
+ });
+ showPool();updateXI();
+}
+function updateXI(){
+ let n=Object.keys(selectedXI).length;xiCount.textContent=n+"/11";startXI.disabled=n!==11;startXI.style.opacity=n===11?1:.45;
+}
+document.querySelectorAll(".clubChoice").forEach(b=>b.onclick=()=>{
+ chosenClub=b.dataset.club;clubPick.style.display="none";squadBuilder.style.display="block";
+ document.getElementById("builderClub").textContent=chosenClub==="RMA"?"REAL MADRID":"BARCELONA";buildPitch();
+});
+document.getElementById("backClub").onclick=()=>{squadBuilder.style.display="none";clubPick.style.display="block";selectedXI={}};
+formationSel.onchange=buildPitch;
+startXI.onclick=()=>{
+ builder.classList.add("hidden");
+ // Keep current match engine intact for this prototype; builder choice is now captured.
+ const start=document.getElementById("start");start.style.display="";
+ const title=start.querySelector("h1");if(title)title.textContent=(chosenClub==="RMA"?"REAL MADRID":"BARCELONA")+" • LEGENDS XI";
+};
+</script></body></html>
