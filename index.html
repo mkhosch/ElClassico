@@ -33,8 +33,56 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 #banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;color:#fff;font-size:clamp(32px,8vw,68px);font-weight:1000;text-shadow:0 4px 12px #000;pointer-events:none;text-align:center}
 #rotate{display:none;position:absolute;inset:0;z-index:20;background:#0b0b0b;color:white;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:800}
 @media(orientation:portrait){#rotate{display:flex}}
+
+/* V6 team builder */
+#builder{position:absolute;inset:0;z-index:40;background:linear-gradient(135deg,#07152c,#111827 55%,#28110b);color:white;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif}
+#builder.hidden{display:none}
+#clubPick{margin:auto;text-align:center;padding:20px}
+#clubPick h1{font-size:clamp(30px,6vw,64px);margin:0 0 8px}
+#clubPick p{opacity:.8;margin:0 0 24px}
+.clubBtns{display:flex;gap:18px;justify-content:center}
+.clubChoice{min-width:180px;padding:20px;border:2px solid #ffffff55;border-radius:18px;color:white;font-weight:900;font-size:20px;background:#ffffff16}
+.clubChoice:active{transform:scale(.97)}
+#squadBuilder{display:none;position:absolute;inset:0;padding:8px 10px 10px;box-sizing:border-box}
+.builderTop{height:44px;display:flex;align-items:center;gap:10px}
+.builderTop b{font-size:18px}
+.builderTop select,.builderTop button{border:0;border-radius:9px;padding:8px 10px;font-weight:800}
+#builderBody{display:grid;grid-template-columns:38% 62%;gap:8px;height:calc(100% - 48px)}
+#legendPool{overflow:auto;background:#0005;border-radius:14px;padding:7px}
+.posHead{font-size:10px;font-weight:1000;opacity:.65;margin:6px 4px 3px;letter-spacing:.8px}
+.legendCard{display:flex;align-items:center;justify-content:space-between;gap:5px;background:#fff;color:#111;border-radius:9px;padding:7px 8px;margin:4px 0;font-size:11px;font-weight:850;touch-action:none}
+.legendCard small{opacity:.55;font-size:9px}
+.legendCard.used{opacity:.28}
+#pitchBuilder{position:relative;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(90deg,#2e874a 0,#2e874a 12.5%,#287c43 12.5%,#287c43 25%);border:2px solid #ffffff88}
+#pitchBuilder:before{content:"";position:absolute;inset:5%;border:1px solid #ffffffaa;border-radius:2px}
+#pitchBuilder:after{content:"";position:absolute;left:50%;top:5%;bottom:5%;border-left:1px solid #ffffffaa}
+.slot{position:absolute;width:74px;height:43px;transform:translate(-50%,-50%);border:1.5px dashed #ffffffbb;border-radius:9px;background:#07111d99;color:white;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;font-weight:900;padding:2px;box-sizing:border-box;z-index:2;touch-action:none}
+.slot.filled{background:#f5f5f5;color:#111;border-style:solid}
+.slot span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68px}
+#startXI{margin-left:auto;background:#efb810;color:#111}
+#backClub{background:#ffffff20;color:white}
+@media(max-height:430px){.legendCard{padding:5px 7px;margin:3px 0}.builderTop{height:38px}#builderBody{height:calc(100% - 42px)}.slot{width:68px;height:38px}}
 </style></head>
-<body><div id="game">
+<body>
+<div id="builder">
+ <div id="clubPick">
+  <h1>BYGG DITT EL CLÁSICO</h1>
+  <p>Välj klubb – sedan väljer ni en startelva bland 30 legendarer.</p>
+  <div class="clubBtns">
+   <button class="clubChoice" data-club="RMA">REAL MADRID</button>
+   <button class="clubChoice" data-club="BAR">BARCELONA</button>
+  </div>
+ </div>
+ <div id="squadBuilder">
+  <div class="builderTop">
+   <button id="backClub">← KLUBB</button><b id="builderClub">REAL MADRID</b>
+   <label>Formation <select id="formation"><option>4-3-3</option><option>4-4-2</option><option>3-5-2</option></select></label>
+   <span id="xiCount">0/11</span><button id="startXI" disabled>SPELA</button>
+  </div>
+  <div id="builderBody"><div id="legendPool"></div><div id="pitchBuilder"></div></div>
+ </div>
+</div>
+<div id="game">
 <canvas id="c" width="1200" height="650"></canvas>
 <div id="cornerScore">RMA&nbsp; <b id="cornerNum">0–0</b>&nbsp; BAR</div><div id="hud"><span>⚪ RMA</span><span id="score">0–0</span><span>BAR 🔵🔴</span><span id="clock">3:00</span></div>
 <div id="joy"><div id="stick"></div></div>
@@ -42,7 +90,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 <div id="powerWrap"><div id="power"></div></div>
 <div id="playerbar"><div id="club">RMA</div><div id="short">CR7</div><div id="pname">CRISTIANO RONALDO</div></div>
 <div id="banner"></div>
-<div id="startScreen"><div id="card"><h1>EL CLÁSICO</h1><div style="opacity:.6;font-size:11px">V5.2 • Dynamic Play</div><p>Real Madrid 2016/17 ⚪ vs 🔵🔴 Barcelona 2010/11<br>Du spelar som Real • Real anfaller →</p><button id="start">STARTA MATCHEN</button></div></div>
+<div id="startScreen"><div id="card"><h1>EL CLÁSICO</h1><div style="opacity:.6;font-size:11px">V6 • Legends Builder</div><p>Real Madrid 2016/17 ⚪ vs 🔵🔴 Barcelona 2010/11<br>Du spelar som Real • Real anfaller →</p><button id="start">STARTA MATCHEN</button></div></div>
 <div id="rotate">📱↻<br><br>Vrid mobilen till liggande läge</div>
 </div>
 <script>
@@ -269,4 +317,85 @@ const joy=document.getElementById("joy"),stick=document.getElementById("stick");
 function jm(e){e.preventDefault();let r=joy.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy)||1,m=Math.min(34,d);input.x=dx/d;input.y=dy/d;stick.style.transform=`translate(${input.x*m}px,${input.y*m}px)`}
 joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);jm(e)});joy.addEventListener("pointermove",e=>{if(e.buttons||e.pointerType==="touch")jm(e)});
 function je(){input.x=input.y=0;stick.style.transform=""}joy.addEventListener("pointerup",je);joy.addEventListener("pointercancel",je);
+
+// ---------- V6: club + legends + formation builder ----------
+const LEGENDS={
+RMA:[
+["GK","Iker Casillas","CAS"],["GK","Keylor Navas","NAV"],["GK","Thibaut Courtois","TCO"],
+["CB","Sergio Ramos","RAM"],["CB","Fernando Hierro","HIE"],["CB","Pepe","PEP"],["CB","Raphaël Varane","VAR"],
+["LB","Roberto Carlos","RCA"],["LB","Marcelo","MAR"],["RB","Dani Carvajal","CAR"],["RB","Míchel Salgado","SAL"],
+["CM","Luka Modrić","MOD"],["CM","Toni Kroos","KRO"],["CM","Casemiro","CASM"],["CM","Zinedine Zidane","ZIZ"],["CM","Fernando Redondo","RED"],["CM","Guti","GUT"],
+["RW","Luís Figo","FIG"],["RW","Gareth Bale","BAL"],["LW","Cristiano Ronaldo","CR7"],["LW","Vinícius Júnior","VJ"],
+["AM","Raúl","RAU"],["AM","Kaká","KAK"],["ST","Karim Benzema","BEN"],["ST","Ronaldo Nazário","R9"],["ST","Alfredo Di Stéfano","ADS"],["ST","Ferenc Puskás","PUS"],
+["FW","Hugo Sánchez","HUG"],["FW","Emilio Butragueño","BUT"],["FW","Santillana","SAN"]],
+BAR:[
+["GK","Víctor Valdés","VAL"],["GK","Andoni Zubizarreta","ZUB"],["GK","Marc-André ter Stegen","MTS"],
+["CB","Carles Puyol","PUY"],["CB","Gerard Piqué","PIQ"],["CB","Rafael Márquez","RMQ"],["CB","Ronald Koeman","KOE"],
+["LB","Jordi Alba","ALB"],["LB","Éric Abidal","ABI"],["RB","Dani Alves","DAV"],["RB","Albert Ferrer","FER"],
+["CM","Xavi","XAV"],["CM","Andrés Iniesta","INI"],["CM","Sergio Busquets","BUS"],["CM","Pep Guardiola","GUA"],["CM","Luis Enrique","LEN"],["CM","Ivan Rakitić","RAK"],
+["RW","Lionel Messi","MES"],["RW","Lamine Yamal","YAM"],["LW","Ronaldinho","RON"],["LW","Neymar","NEY"],
+["AM","Rivaldo","RIV"],["AM","Michael Laudrup","LAU"],["ST","Luis Suárez","LSU"],["ST","Samuel Eto'o","ETO"],["ST","Johan Cruyff","CRU"],["ST","Romário","ROM"],
+["FW","Hristo Stoichkov","STO"],["FW","César Rodríguez","CES"],["FW","David Villa","VIL"]]
+};
+const FORMS={
+"4-3-3":[["GK",8,50],["LB",28,15],["CB",28,38],["CB",28,62],["RB",28,85],["CM",52,28],["CM",47,50],["CM",52,72],["LW",76,20],["ST",82,50],["RW",76,80]],
+"4-4-2":[["GK",8,50],["LB",28,15],["CB",28,38],["CB",28,62],["RB",28,85],["LM",53,15],["CM",49,39],["CM",49,61],["RM",53,85],["ST",80,38],["ST",80,62]],
+"3-5-2":[["GK",8,50],["CB",29,27],["CB",25,50],["CB",29,73],["LM",52,12],["CM",49,32],["CM",45,50],["CM",49,68],["RM",52,88],["ST",80,38],["ST",80,62]]
+};
+let chosenClub=null,selectedXI={},dragPlayer=null;
+const builder=document.getElementById("builder"),clubPick=document.getElementById("clubPick"),squadBuilder=document.getElementById("squadBuilder"),
+legendPool=document.getElementById("legendPool"),pitchBuilder=document.getElementById("pitchBuilder"),formationSel=document.getElementById("formation"),
+xiCount=document.getElementById("xiCount"),startXI=document.getElementById("startXI");
+
+function showPool(){
+ legendPool.innerHTML="";
+ let last="";
+ LEGENDS[chosenClub].forEach((pl,i)=>{
+   if(pl[0]!==last){let h=document.createElement("div");h.className="posHead";h.textContent=pl[0];legendPool.appendChild(h);last=pl[0]}
+   let c=document.createElement("div");c.className="legendCard";c.dataset.i=i;c.draggable=true;
+   c.innerHTML=`<span>${pl[1]}</span><small>${pl[0]}</small>`;
+   if(Object.values(selectedXI).includes(i))c.classList.add("used");
+   c.addEventListener("dragstart",()=>dragPlayer=i);
+   c.addEventListener("pointerdown",()=>dragPlayer=i);
+   legendPool.appendChild(c);
+ });
+}
+function buildPitch(){
+ selectedXI={};pitchBuilder.innerHTML="";
+ FORMS[formationSel.value].forEach((a,n)=>{
+   let sl=document.createElement("div");sl.className="slot";sl.dataset.slot=n;sl.style.left=a[1]+"%";sl.style.top=a[2]+"%";
+   sl.innerHTML=`<span>${a[0]}</span>`;
+   sl.addEventListener("dragover",e=>e.preventDefault());
+   sl.addEventListener("drop",e=>{e.preventDefault();place(n,dragPlayer)});
+   sl.addEventListener("pointerup",()=>{if(dragPlayer!==null)place(n,dragPlayer)});
+   pitchBuilder.appendChild(sl);
+ });
+ showPool();updateXI();
+}
+function place(slot,i){
+ if(i===null||i===undefined)return;
+ for(const k in selectedXI)if(selectedXI[k]===i)delete selectedXI[k];
+ selectedXI[slot]=i;dragPlayer=null;
+ [...pitchBuilder.querySelectorAll(".slot")].forEach((sl,n)=>{
+   let pi=selectedXI[n];
+   if(pi!==undefined){sl.classList.add("filled");sl.innerHTML=`<span>${LEGENDS[chosenClub][pi][2]}<br>${LEGENDS[chosenClub][pi][1]}</span>`}
+   else{sl.classList.remove("filled");sl.innerHTML=`<span>${FORMS[formationSel.value][n][0]}</span>`}
+ });
+ showPool();updateXI();
+}
+function updateXI(){
+ let n=Object.keys(selectedXI).length;xiCount.textContent=n+"/11";startXI.disabled=n!==11;startXI.style.opacity=n===11?1:.45;
+}
+document.querySelectorAll(".clubChoice").forEach(b=>b.onclick=()=>{
+ chosenClub=b.dataset.club;clubPick.style.display="none";squadBuilder.style.display="block";
+ document.getElementById("builderClub").textContent=chosenClub==="RMA"?"REAL MADRID":"BARCELONA";buildPitch();
+});
+document.getElementById("backClub").onclick=()=>{squadBuilder.style.display="none";clubPick.style.display="block";selectedXI={}};
+formationSel.onchange=buildPitch;
+startXI.onclick=()=>{
+ builder.classList.add("hidden");
+ // Keep current match engine intact for this prototype; builder choice is now captured.
+ const start=document.getElementById("start");start.style.display="";
+ const title=start.querySelector("h1");if(title)title.textContent=(chosenClub==="RMA"?"REAL MADRID":"BARCELONA")+" • LEGENDS XI";
+};
 </script></body></html>
